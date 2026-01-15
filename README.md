@@ -23,7 +23,3 @@ pip install -r requirements.txt
 - `notebook.ipynb` - Main Jupyter notebook with all experiments
 - `data/` - Dataset CSV files
 - `data/report/experiment_report.tex` - Auto-generated LaTeX report
-
-## License
-
-GPL-3.0
