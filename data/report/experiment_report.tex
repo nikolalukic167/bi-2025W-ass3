@@ -10,7 +10,7 @@
 
 \begin{document}
 
-\title{BI2025 Interim Experiment Report - Group 06}
+\title{BI2025 Experiment Report - Group 06}
 %% ---Authors: Dynamically added ---
 
           \author{Nikola Lukic}
@@ -19,7 +19,6 @@
             \institution{TU Wien}
             \country{Austria}
           }
-          
           \author{Kerim Halilovic}
           \authornote{Student B, Matr.Nr.: 12434665}
           \affiliation{
@@ -29,11 +28,11 @@
           
 
 \begin{abstract}
-  This report documents the interim results (Phases 1-3) of the machine learning experiment for Group 06, following the CRISP-DM process model.
+  This report documents the full CRISP-DM machine learning experiment for Group 06, covering all six phases: Business Understanding, Data Understanding, Data Preparation, Modeling, Evaluation, and Deployment.
 \end{abstract}
 
 \ccsdesc[500]{Computing methodologies~Machine learning}
-\keywords{CRISP-DM, Provenance, Knowledge Graph, Machine Learning}
+\keywords{CRISP-DM, Provenance, Knowledge Graph, Machine Learning, Airbnb, Price Prediction}
 
 \maketitle
 
@@ -41,12 +40,41 @@
 \section{Business Understanding}
 
 \subsection{Data Source and Scenario}
+
 The dataset consists of two CSV files (`rome\_weekdays.csv` and `rome\_weekends.csv`) containing Airbnb listings in Rome. It includes attributes such as price (`realSum`), room type, capacity, cleanliness rating, guest satisfaction, and distance from the city center and metro.
 
 Scenario: A property management firm in Rome wants to optimize their pricing strategy and investment portfolio. They need to understand which factors most significantly drive listing prices (e.g., is being closer to the metro more valuable than a high cleanliness rating?) to predict the optimal price for new properties entering the market.
 
+
 \subsection{Business Objectives}
+
 The primary business objective is to maximize revenue for property owners by setting optimal rental prices. This requires identifying the key drivers of listing value in the Rome market (e.g., location vs. amenities) and providing a tool to estimate fair market value for new or existing listings to avoid underpricing or overpricing.
+
+
+\subsection{Business Success Criteria}
+
+1. Insight Generation: Identify the top 3 factors that account for at least 50\% of the explained variance in listing prices, providing actionable levers for property managers.
+2. Pricing Accuracy: The model should predict listing prices with sufficient accuracy to be useful for setting initial rental rates (e.g., within a reasonable error margin relative to the average listing price).
+
+
+\subsection{Data Mining Goals}
+
+1. Regression Task: Develop a regression model to predict the `realSum` (total price) of a listing based on its features (distance, room type, satisfaction, etc.).
+2. Feature Importance: Analyze the model to determine feature importance coefficients, quantifying the impact of distance, room type, and weekday vs. weekend timing on price.
+
+
+\subsection{Data Mining Success Criteria}
+
+1. Model Performance: Achieve an R-squared (R\textasciicircum{}2) score of at least 0.60 on the test set, indicating that the model explains at least 60\% of the variance in pricing.
+2. Error Metric: Achieve a Mean Absolute Error (MAE) lower than 40 Euros, ensuring the predicted price is, on average, within a useful range of the actual market price.
+
+
+\subsection{AI Risk Aspects}
+
+1. Bias \& Fairness: The dataset might reflect existing gentrification patterns. If location is a strong predictor, the model might undervalue properties in up-and-coming neighborhoods, potentially reinforcing economic disparities.
+2. Temporal Validity: The data is a snapshot in time. Prices fluctuate seasonally (e.g., Jubilee year in Rome). A risk exists that the model becomes obsolete if not retraining regularly with current data.
+3. Data Quality: "Guest satisfaction" is subjective. Relying heavily on it might introduce noise if ratings are biased or manipulated.
+
 
 %% --- 2. Data Understanding ---
 \section{Data Understanding}
@@ -61,22 +89,26 @@ The following features were identified in the dataset:
     \toprule
     \textbf{Feature Name} & \textbf{Data Type} & \textbf{Description} \\
     \midrule
-    bedrooms & double> & The number of bedrooms in the listing. \\
-    biz & boolean> & Whether the listing is for business purposes or not. \\
-    cleanliness\_rating & double> & The cleanliness rating of the listing. \\
-    dist & double> & The distance from the city centre. \\
-    guest\_satisfaction\_overall & double> & The overall guest satisfaction rating of the listing. \\
-    host\_is\_superhost & boolean> & Whether the host is a superhost or not. \\
-    is\_weekend & boolean> & Boolean flag indicating if data is from weekend file \\
-    lat & double> & The latitude of the listing. \\
-    lng & double> & The longitude of the listing. \\
-    metro\_dist & double> & The distance from the nearest metro station. \\
-    multi & boolean> & Whether the listing is for multiple rooms or not. \\
-    person\_capacity & double> & The maximum number of people that can stay in the room. \\
-    realSum & double> & The total price of the Airbnb listing. \\
-    room\_private & boolean> & Whether the room is private or not. \\
-    room\_shared & boolean> & Whether the room is shared or not. \\
-    room\_type & string> & The type of room being offered (e.g. private, shared, etc.). \\
+    realSum & - & Target Variable. Total price of the listing for 2 people for 2 nights. Unit: EUR \\
+    room\_type & - & Categorical. The type of accommodation (e.g., 'Private room', 'Entire home/apt'). \\
+    room\_shared & - & Boolean. True if the room is shared with others. \\
+    room\_private & - & Boolean. True if the room is private. \\
+    person\_capacity & - & The maximum number of guests allowed. Unit: Count \\
+    host\_is\_superhost & - & Boolean. True if the host has 'Superhost' status (high ratings/reliability). \\
+    multi & - & Binary (0/1). Indicates if the host manages multiple listings (1=Yes). \\
+    biz & - & Binary (0/1). Indicates if the host is a business/professional entity (1=Yes). \\
+    cleanliness\_rating & - & The cleanliness score given by guests. Unit: Scale (likely 1-10). \\
+    guest\_satisfaction\_overall & - & The overall rating score from guest reviews. Unit: Scale (0-100). \\
+    bedrooms & - & Number of bedrooms in the listing. Unit: Count \\
+    dist & - & Distance from the city center. Unit: Kilometers \\
+    metro\_dist & - & Distance to the nearest metro station. Unit: Kilometers \\
+    attr\_index & - & Undocumented attribute. \\
+    attr\_index\_norm & - & Undocumented attribute. \\
+    rest\_index & - & Undocumented attribute. \\
+    rest\_index\_norm & - & Undocumented attribute. \\
+    lng & - & Longitude coordinate. Unit: Decimal Degrees \\
+    lat & - & Latitude coordinate. Unit: Decimal Degrees \\
+    is\_weekend & - & Boolean. Derived feature indicating if the price is for a weekend stay. \\
     \bottomrule
   \end{tabular}
 \end{table}
@@ -87,22 +119,260 @@ The following features were identified in the dataset:
 The following data preparation steps were performed:
 
 \begin{itemize}
-    \item \textbf{Transform Features} Applied data transformations:\newline 1. Log-Transformation: Applied log-plus-one transformation to realSum to address the high skewness identified in data understanding.\newline 2. Feature Selection: Excluded attr\_index and rest\_index variants due to lack of documentation and high correlation with distance.\newline 3. Encoding: Applied One-Hot Encoding to room\_type.\newline 4. Scaling: Applied Standard Scaler to numeric features to normalize magnitudes.
-    \item \textbf{3.b Analyze Pre-processing Alternatives} 
-    \item \textbf{3.c Analyze Derived Attributes} 
-    \item \textbf{3.d Analyze External Data Sources} 
-    \item \textbf{Transform Features} Applied data transformations:\newline 1. Log-Transformation: Applied log-plus-one transformation to realSum to address the high skewness identified in data understanding.\newline 2. Feature Selection: Excluded attr\_index and rest\_index variants due to lack of documentation and high correlation with distance.\newline 3. Encoding: Applied One-Hot Encoding to room\_type.\newline 4. Scaling: Applied Standard Scaler to numeric features to normalize magnitudes.
-    \item \textbf{3.b Analyze Pre-processing Alternatives} 
-    \item \textbf{3.c Analyze Derived Attributes} 
-    \item \textbf{3.d Analyze External Data Sources} 
-    \item \textbf{Transform Features} Applied data transformations:\newline 1. Log-Transformation: Applied log-plus-one transformation to realSum to address the high skewness identified in data understanding.\newline 2. Feature Selection: Excluded attr\_index and rest\_index variants due to lack of documentation and high correlation with distance.\newline 3. Encoding: Applied One-Hot Encoding to room\_type.\newline 4. Scaling: Applied Standard Scaler to numeric features to normalize magnitudes.
-    \item \textbf{3.b Analyze Pre-processing Alternatives} 
-    \item \textbf{3.c Analyze Derived Attributes} 
-    \item \textbf{3.d Analyze External Data Sources} 
+    
+\item \textbf{Handle Outliers} 
+Removing all outliers that were identifying in the Data Understanding Phase.
+
+\item \textbf{Transform Features} 
+Applied data transformations:
+1. Log-Transformation: Applied log-plus-one transformation to realSum to address the high skewness identified in data understanding.
+2. Feature Selection: Excluded attr\_index and rest\_index variants due to lack of documentation and high correlation with distance.
+3. Encoding: Applied One-Hot Encoding to room\_type.
+4. Scaling: Applied Standard Scaler to numeric features to normalize magnitudes.
+
+\item \textbf{Analyze Pre-processing Alternatives} 
+1. Dimensionality Reduction (PCA):
+   - Rejected because the business objective requires 'Insight Generation'. PCA transforms features into abstract components, destroying interpretability.
+
+2. Binning (Discretization) of 'dist' or 'realSum':
+   - Rejected because we are performing regression. Binning continuous variables into categories loses variance information and reduces predictive accuracy.
+
+3. Imputation:
+   - Not Applied because Data Quality Verification (2.e) confirmed 0 missing values.
+
+4. Removal of 'guest\_satisfaction\_overall':
+   - Rejected because while identified as subjective in Risk Assessment (2.f), it is a critical business metric. We chose to keep it but interpret it with caution rather than removing it.
+
+\item \textbf{Analyze Derived Attributes} 
+1. Price per Person (realSum / capacity):
+   - Rejected because Distinct distribution, but rejected as feature due to Data Leakage (contains target). using it as a feature causes leakage.
+
+2. Proximity Score (1 / dist):
+   - Rejected because log-transformation of 'dist' achieves similar linearization effects for regression.
+
+\item \textbf{Analyze External Data Sources} 
+1. Neighborhood Safety Statistics (Crime Rate):
+   - 'dist' misses the nuance of neighborhood reputation. Safe areas command higher prices regardless of distance.
+
+2. Points of Interest (POI) Density:
+   - Granular data on count of Restaurants/Bars within a certain distance would be useful.
+
+
 \end{itemize}
 
-%% --- Future Work ---
-\section{Future Work}
-\textit{Modeling, Evaluation, and Deployment will be covered in the final submission.}
+%% --- 4. Modeling ---
+\section{Modeling}
+The following modeling activities were performed:
+
+\begin{itemize}
+    
+\item \textbf{4a: Algorithm Selection} 
+For this regression task (predicting Airbnb listing prices), we considered several algorithms:
+
+1. Linear Regression: Simple and interpretable, but may not capture non-linear relationships between features and price.
+
+2. Random Forest Regressor: 
+   - Advantages: Handles non-linear relationships well, provides feature importance, robust to outliers, no feature scaling required (though we already scaled), good performance on tabular data.
+   - Disadvantages: Less interpretable than linear models, but still provides feature importance scores.
+   - Tested: Achieved Validation R²=0.5951 with significant overfitting (Train R²=0.9468, gap=0.3517)
+
+3. Gradient Boosting (scikit-learn GradientBoostingRegressor): 
+   - Advantages: Handles non-linearities well, provides feature importance, better regularization capabilities than Random Forest, part of scikit-learn (no additional dependencies).
+   - Disadvantages: Slower than XGBoost, requires more hyperparameter tuning than simpler algorithms.
+   - Tested: Achieved good performance with proper regularization
+
+4. Support Vector Regression (SVR):
+   - Advantages: Good for non-linear relationships with kernel trick.
+   - Disadvantages: Slower on large datasets, less interpretable, requires careful hyperparameter tuning.
+
+SELECTION: GradientBoostingRegressor (scikit-learn)
+Justification: 
+- Good performance: Gradient boosting typically achieves better performance than Random Forest for regression tasks
+- Better generalization: Reduced overfitting compared to Random Forest through sequential learning and regularization
+- Provides feature importance which directly addresses the business goal of identifying top factors driving prices
+- Handles the mix of categorical (one-hot encoded) and continuous features well
+- Training time is acceptable for our dataset size (\textasciitilde{}8,929 samples)
+- Built-in regularization mechanisms (learning\_rate, min\_samples\_split, subsample, max\_features) help prevent overfitting
+- Part of scikit-learn: No additional dependencies required, consistent with assignment requirements
+
+\item \textbf{4b: Hyperparameter Identification} 
+Available hyperparameters for GradientBoostingRegressor (sklearn.ensemble.GradientBoostingRegressor):
+
+1. n\_estimators: Number of boosting rounds (trees)
+    - Interval: Typically 50-1000+ (standard: 100)
+    - Impact: More trees improve performance but increase training time. Works in combination with learning\_rate.
+    - Tuning effort: Medium (needs to be tuned together with learning\_rate)
+
+2. learning\_rate: Step size shrinkage used in each boosting step
+    - Interval: 0.01 to 0.3 (standard: 0.1)
+    - Impact: Lower values require more trees but can improve generalization. Key regularization parameter.
+    - Tuning effort: High (critical for preventing overfitting)
+
+3. max\_depth: Maximum depth of a tree
+    - Interval: 3 to 10 (standard: 3)
+    - Impact: Controls model complexity and overfitting. Deeper trees capture more patterns but may overfit.
+    - Tuning effort: Medium (important for regularization)
+
+4. min\_samples\_split: Minimum number of samples required to split an internal node
+    - Interval: 2 to 20+ (standard: 2)
+    - Impact: Higher values prevent overfitting by requiring more samples before splitting
+    - Tuning effort: Medium (good regularization parameter)
+
+5. subsample: Fraction of samples used for each tree
+    - Interval: 0.5 to 1.0 (standard: 1.0)
+    - Impact: Prevents overfitting by using random subsets of training data (similar to Random Forest)
+    - Tuning effort: Low (few discrete options)
+
+6. max\_features: Number of features to consider when looking for the best split
+    - Options: 'sqrt', 'log2', None (all features), or float (fraction)
+    - Impact: Prevents overfitting by using random subsets of features
+    - Tuning effort: Low (few discrete options)
+
+CHOICE FOR TUNING: learning\_rate
+
+Justification:
+- Critical for generalization: Learning rate is the most important hyperparameter for controlling overfitting in gradient boosting
+- Significant impact: Small changes can dramatically affect model performance and overfitting gap
+- Works in combination with n\_estimators: Lower learning\_rate with more trees often yields better generalization
+- Reasonable tuning interval: We will evaluate [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4] to find optimal balance
+- Step-width: Increments of 0.05 provide good coverage of the effective range
+- Impact on compute effort: Lower learning\_rate requires more trees (n\_estimators), but this is manageable for our dataset size
+- Built-in regularization: Gradient boosting's learning\_rate naturally helps prevent overfitting compared to Random Forest
+
+Tuning Strategy:
+- Evaluation interval: [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4]
+- Fixed hyperparameters: n\_estimators=300, max\_depth=6, min\_samples\_split=10, subsample=0.8, max\_features='sqrt', random\_state=42
+- Evaluation: Employ validation set R² and MAE to choose best parameter, with focus on reducing overfitting gap
+
+\item \textbf{4c: Train/Validation/Test Split} 
+Data split strategy:
+- Split ratio: 60\% training, 20\% validation, 20\% evaluation
+- Random state: 42 (for reproducibility)
+- Shuffle: Enabled (randomize data before splitting)
+- No stratification: Not required for regression task
+- Target variable: log\_realSum (log-transformed price)
+- Features: All columns except log\_realSum and realSum
+
+Rationale:
+- 60\% training: Sufficient data for model learning while reserving adequate data for validation
+- 20\% validation: Used for hyperparameter tuning and model selection
+- 20\% evaluation: Final unbiased evaluation set, only used once at the end
+- Random state ensures reproducibility across runs
+- No stratification needed as this is a regression task (continuous target)
+
+\item \textbf{4d: Training and Hyperparameter Tuning} 
+Hyperparameter tuning performed for GradientBoostingRegressor:
+- Hyperparameter tuned: learning\_rate
+- Values evaluated: [0.05, 0.1, 0.15, 0.2, 0.25, 0.3]
+- Fixed hyperparameters: n\_estimators=300, max\_depth=6, min\_samples\_split=10, subsample=0.8, max\_features='sqrt', random\_state=42
+- Evaluation metrics: R², MAE, RMSE, and overfitting gap on both training and validation sets
+- Best model selected based on highest validation R² score
+- Visualizations created showing performance metrics vs learning\_rate
+
+\item \textbf{4g: Final Model Retraining} 
+Final model retraining:
+- Combined training and validation sets for final model training
+- Using best hyperparameters from tuning: learning\_rate =0.3
+- Fixed hyperparameters: n\_estimators=300, max\_depth=6, min\_samples\_split=10, subsample=0.8, max\_features='sqrt', random\_state=42
+- Final training set size: 7143 samples
+- This model will be used for final evaluation on the evaluation set (test set)
+
+
+\end{itemize}
+
+%% --- 5. Evaluation ---
+\section{Evaluation}
+The following evaluation activities were performed:
+
+\begin{itemize}
+    
+\item \textbf{Final Model Evaluation on Test Set} 
+5a. Evaluation of GradientBoostingRegressor (lr=0.3) on Test Data:
+   - R²: 0.6759 (Higher than the validation R² of 0.6394, showing good generalization to new data).
+   - MAE: 35.80 EUR. On average, the predicted price differs from the true price by about 36 EUR.
+
+5b.
+    i. State-of-the-Art Benchmark (Literature):
+        - Dataset Origin: The data comes from the paper "Determinants of Airbnb prices in European cities" by Gyódi \& Nawaro (2021), published in Tourism Management.
+        - Literature Approach: The authors used spatial econometric models to account for location effects. They evaluated their models using Log-Likelihood and AIC instead of R².
+        - Our Gradient Boosting model (R² = 0.6759) performs competitively. It captures non-linear location effects (e.g., 'attr\_index') without the added complexity of spatial weight matrices.
+
+    ii. Trivial Baseline (Mean Predictor):
+        - We tested a dummy model that always predicts the average price from the training data.
+        - Result: MAE = 62.78 EUR (R² ≈ 0.0).
+        - Interpretation: A simple average-based prediction is, on average, wrong by about 63 EUR.
+
+5c. Performance Comparison:
+   - Metric: MAE (Mean Absolute Error).
+   - Our Result: 35.80 EUR.
+   - Comparison: Our model reduces the error by about 43\% compared to the baseline (62.78 EUR -> 35.80 EUR), showing significant improvement.
+
+5d. Business Success Criteria Evaluation:
+   - Goal: Provide useful price estimates for a price suggestion tool.
+   - Verdict: Success. An average error of around 36 EUR is acceptable for suggesting a price range to hosts. The model is suitable for decision support, but not for fully automatic pricing.
+
+5e. Bias Analysis (Protected Attribute: Shared Rooms):
+   - Shared Room RMSE: 9.85 EUR
+   - Entire Home / Private Room RMSE: 51.60 EUR
+   - Interpretation: The error is much lower for shared rooms. This is expected because shared rooms are cheaper, which limits how large the prediction errors can be compared to expensive entire homes.
+
+\item \textbf{Insight Generation: Top 3 Factors Analysis} 
+Analyzed feature importance from the final XGBoost model to verify business success criterion.
+
+Results:
+- Top 3 factors: dist, metro\_dist, person\_capacity
+- Cumulative importance: 59.4\%
+- Criterion met: Yes (≥50\% required)
+
+This analysis addresses the business requirement: "Identify the top 3 factors that account for at least 50\% of the explained variance in listing prices, providing actionable levers for property managers."
+
+
+\end{itemize}
+
+%% --- 6. Deployment ---
+\section{Deployment}
+The following deployment planning activities were performed:
+
+\begin{itemize}
+    
+\item \textbf{6a Business Objectives Reflection} 
+6a. Business Success and Deployment Recommendations:
+
+1. Comparison with Success Criteria:
+   - Criterion 1 (Insight Generation): Met. The model identified the three most important factors for price: 'dist' (25.8\%), 'metro\_dist' (16.2\%), and 'person\_capacity' (14.9\%). Together, they explain 56.9\% of the model's predictions, which is above the 50\% target. This shows that location and capacity are the main drivers of prices in Rome.
+   - Criterion 2 (Pricing Accuracy): Met. The final model achieved a Test MAE of 35.80 EUR (target: < 40 EUR) and an R² of 0.6759 (target: > 0.60). This level of accuracy is good enough for practical use.
+
+2. Fulfillment of Business Objectives:
+   - Objective: "Maximize revenue by setting good rental prices."
+   - Verdict: The results are sufficient as a baseline pricing model. The model captures the value of fixed features such as location and size.
+   - Missing Aspects: The model does not include time-based effects (seasonality, holidays) or image-based features (listing photos), which are important for fully optimizing prices.
+
+3. Recommendations for Deployment:
+   - Strategy: Hybrid / Decision Support System.
+   - Justification: Since the model is based on static data, it should not be fully automatic. It should be used as a price suggestion tool that provides a base price (for example, 150 EUR ± 35 EUR), which managers can adjust based on seasonality or special features not included in the data.
+
+4. Recommendations for Further Analysis:
+   - Add time-series data to capture changes in demand over time (e.g., summer vs. winter prices).
+   - Use text analysis on guest reviews to measure qualitative factors (e.g., "noisy street" vs. "great view").
+
+\item \textbf{6b Ethical Aspects and Risks} 
+6b. Ethical Aspects and Impact Assessment:
+   - Gentrification Risk: As said earlier, location-related features ('distance', 'attr\_index') strongly influence price predictions. Using this model could push prices higher in already popular areas, which may contribute to gentrification by reinforcing existing price differences between neighborhoods.
+   - Fairness and Bias: The bias analysis (5e) showed lower absolute errors for Shared Rooms compared to Entire Homes. This indicates that the model does not ignore cheaper listings. However, the impact of an error depends on the price level: a 10 EUR error on a 30 EUR room is more significant for budget users than a 50 EUR error on an expensive listing.
+   - Mitigation Measures: Introduce guardrails that warn users when the suggested price is much higher than the local neighborhood average, helping to reduce the risk of unfair or excessive pricing.
+
+\item \textbf{6c Monitoring Plan} 
+6c. Monitoring Plan:
+   - Drift Detection: Check the distribution of new 'realSum' prices every week. If the average price changes by more than 10\% (for example, due to inflation or new regulations), start a model retraining process.
+   - Performance Trigger: If the MAE on new feedback data rises above 45 EUR (exceeding the business limit), stop automatic price suggestions and switch to manual review.
+   - Seasonality Check: Because the model does not account for time effects, its performance should be closely reviewed during peak periods (such as summer), when it may underestimate prices.
+
+\item \textbf{6d Reproducibility Reflection} 
+6d. Reproducibility Reflection:
+   - Strengths: The provenance graph records the exact hyperparameters (lr=0.3), data splits (random\_state=42), and feature processing steps (log transformation). This makes it possible to fully reproduce the model and its results.
+   - Risks: The external datasets (such as the Gyodi and Nawaro dataset) are fixed snapshots. If the original download link or repository becomes unavailable, the data cannot be retrieved again. To reduce this risk, a hash or checksum of the input CSV files should be stored in the provenance graph to allow future verification of data integrity.
+
+
+\end{itemize}
 
 \end{document}
